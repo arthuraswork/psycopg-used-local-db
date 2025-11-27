@@ -5,8 +5,8 @@ from dbconnection import *
 class DbTable:
     dbconn = None
 
-    def __init__(self):
-        return
+    def __init__(self, table_name):
+        self.table_name = table_name
 
     def table_name(self):
         return  "drivers"
@@ -30,7 +30,7 @@ class DbTable:
         return []
 
     def create(self):
-        sql = "CREATE TABLE " + self.table_name() + "("
+        sql = "CREATE TABLE " + self.table_name + "("
         arr = [k + " " + " ".join(v) for k, v in sorted(self.columns().items(), key = lambda x: x[0])]
         sql += ", ".join(arr + self.table_constraints())
         sql += ")"
@@ -40,7 +40,7 @@ class DbTable:
         return
 
     def drop(self):
-        sql = "DROP TABLE IF EXISTS " + self.table_name()
+        sql = "DROP TABLE IF EXISTS " + self.table_name
         cur = self.dbconn.conn.cursor()
         cur.execute(sql)
         self.dbconn.conn.commit()
@@ -57,7 +57,7 @@ class DbTable:
         return
 
     def first(self):
-        sql = "SELECT * FROM " + self.table_name()
+        sql = "SELECT * FROM " + self.table_name
         sql += " ORDER BY "
         sql += ", ".join(self.primary_key())
         cur = self.dbconn.conn.cursor()
@@ -65,7 +65,7 @@ class DbTable:
         return cur.fetchone()        
 
     def last(self):
-        sql = "SELECT * FROM " + self.table_name()
+        sql = "SELECT * FROM " + self.table_name
         sql += " ORDER BY "
         sql += ", ".join([x + " DESC" for x in self.primary_key()])
         cur = self.dbconn.conn.cursor()
@@ -73,7 +73,7 @@ class DbTable:
         return cur.fetchone()
 
     def all(self):
-        sql = "SELECT * FROM " + "drivers"
+        sql = "SELECT * FROM " + self.table_name
         sql += " ORDER BY "
         sql += ", ".join(self.primary_key())
         cur = self.dbconn.conn.cursor()
