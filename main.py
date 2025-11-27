@@ -10,8 +10,8 @@ class Main:
 
     config = ProjectConfig()
     connection = DbConnection(config)
-    ct = CarsTable()
-    dt = DriversTable()
+    ct = CarsTable('cars')
+    dt = DriversTable('drivers')
 
     def __init__(self):
         DbTable.dbconn = self.connection
@@ -66,7 +66,7 @@ class Main:
         count = 8
         print(menu)
         lst = self.dt.all()
-        for k, i in enumerate(lst):
+        for _, i in lst:
             print("\t".join([f"{v}{' '* (count -len(str(v)))}" for v in i]))
         menu = """Дальнейшие операции: 
     0 - возврат в главное меню;
