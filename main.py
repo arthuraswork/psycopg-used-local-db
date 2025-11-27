@@ -18,16 +18,13 @@ class Main:
         return
 
     def db_init(self):
-
         self.ct.create()
         self.dt.create()
         return
 
     def db_drop(self):
-        pht = DriversTable()
-        pt = CarsTable()
-        pht.drop()
-        pt.drop()
+        self.drop()
+        self.drop()
         return
 
     def show_main_menu(self):
