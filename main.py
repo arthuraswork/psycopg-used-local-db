@@ -66,11 +66,14 @@ class Main:
         count = 8
         print(menu)
         lst = self.dt.all()
+        print(
+            "\t".join([f"\033[34m{i}{' '* (count -len(str(i)))}\033[0m" for i in self.dt.columns().keys()])
+              )
         for i in lst:
             print("\t".join([f"{v}{' '* (count -len(str(v)))}" for v in i]))
         menu = """Дальнейшие операции: 
     0 - возврат в главное меню;
-    3 - добавление нового водмтеля;
+    3 - добавление нового водителя;
     4 - удаление водителя;
     5 - просмотр телефонов человека;
     9 - выход."""
