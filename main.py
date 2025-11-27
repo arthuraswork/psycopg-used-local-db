@@ -66,7 +66,7 @@ class Main:
         count = 8
         print(menu)
         lst = self.dt.all()
-        for _, i in lst:
+        for i in lst:
             print("\t".join([f"{v}{' '* (count -len(str(v)))}" for v in i]))
         menu = """Дальнейшие операции: 
     0 - возврат в главное меню;
