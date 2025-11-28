@@ -3,8 +3,10 @@
 from dbtable import *
 
 class DriversTable(DbTable):
-    def table_name(self):
-        return "drivers"
+    table_name = 'drivers'
+
+    def __init__(self):
+        super().__init__()
 
     def columns(self):
         return {
@@ -18,9 +20,6 @@ class DriversTable(DbTable):
             "pasport_number": ["varchar(6)", "NOT NULL"]
         }
         
-    def primary_key(self):
-        return ['id']    
-
     def table_constraints(self):
         return ["PRIMARY KEY(id)"]
 

@@ -3,8 +3,12 @@
 from dbtable import *
 
 class CarsTable(DbTable):
-    def table_name(self):
-        return  "cars"
+    table_name = 'cars'
+
+    def __init__(self):
+        super().__init__()
+
+
     def columns(self):
         return {
             "id": ["serial", "PRIMARY KEY"],

@@ -4,21 +4,9 @@ from dbconnection import *
 
 class DbTable:
     dbconn = None
+    table_name = 'table_name'
+    primary_key = 'id'
 
-    def __init__(self, table_name):
-        self.table_name = table_name
-
-    def table_name(self):
-        return  "drivers"
-
-    def columns(self):
-        return {"test": ["integer", "PRIMARY KEY"]}
-
-    def column_names(self):
-        return sorted(self.columns().keys(), key = lambda x: x)
-
-    def primary_key(self):
-        return ['id']
 
     def column_names_without_id(self):
         res = sorted(self.columns().keys(), key = lambda x: x)
@@ -26,11 +14,14 @@ class DbTable:
             res.remove('id')
         return res
 
+    def columns(self):
+        pass
+
     def table_constraints(self):
-        return []
+        return self.columns().values()
 
     def create(self):
-        sql = "CREATE TABLE " + self.table_name + "("
+        sql = "CREATE TABLE IF NOT EXISTS" + self.table_name + "("
         arr = [k + " " + " ".join(v) for k, v in sorted(self.columns().items(), key = lambda x: x[0])]
         sql += ", ".join(arr + self.table_constraints())
         sql += ")"
@@ -46,11 +37,40 @@ class DbTable:
         self.dbconn.conn.commit()
         return
 
+    def update_table(self, x, op, val, upd_column, new_val):
+        if x not in self.columns().keys() or upd_column not in self.columns().keys():
+            print('Такой колонки нет')
+            return  
+        sql = f"UPDATE {self.table_name} SET {upd_column} = %s WHERE ({x} {op} %s) RETURNING *"
+        cur = self.dbconn.conn.cursor()
+        cur.execute(sql, (new_val, val))
+        self.dbconn.conn.commit()
+        return cur.fetchall()
+
+    def delete_where(self, x, op, val):
+        if x not in self.columns().keys():
+            print('Такой колонки нет')
+            return  
+        sql = f"DELETE FROM {self.table_name} WHERE ({x} {op} %s) RETURNING *"
+        cur = self.dbconn.conn.cursor()
+        cur.execute(sql, (val,))
+        self.dbconn.conn.commit()
+        return cur.fetchall()
+
+    def select_where(self, x, op, val):
+        if x not in self.columns().keys():
+            print('Такой колонки нет')
+            return  
+        sql = f"SELECT * FROM {self.table_name} WHERE ({x} {op} %s)"
+        cur = self.dbconn.conn.cursor()
+        cur.execute(sql, (val,))
+        return cur.fetchall()
+
     def insert_one(self, vals):
         values = ", ".join([c for c,_ in vals])
         data_placeholders = ", ".join(['%s' for _,v in vals])
         params = tuple([v for _,v in vals])
-        sql = f"INSERT INTO {self.table_name()} ({values}) VALUES ({data_placeholders})"
+        sql = f"INSERT INTO {self.table_name} ({values}) VALUES ({data_placeholders})"
         cur = self.dbconn.conn.cursor()
         cur.execute(sql, params)
         self.dbconn.conn.commit()
@@ -58,24 +78,22 @@ class DbTable:
 
     def first(self):
         sql = "SELECT * FROM " + self.table_name
-        sql += " ORDER BY "
-        sql += ", ".join(self.primary_key())
+        sql += f" ORDER BY {self.primary_key} LIMIT 1"
         cur = self.dbconn.conn.cursor()
         cur.execute(sql)
-        return cur.fetchone()        
+        return [cur.fetchone()]        
+
 
     def last(self):
         sql = "SELECT * FROM " + self.table_name
-        sql += " ORDER BY "
-        sql += ", ".join([x + " DESC" for x in self.primary_key()])
+        sql += f" ORDER BY {self.primary_key} DESC LIMIT 1"
         cur = self.dbconn.conn.cursor()
         cur.execute(sql)
-        return cur.fetchone()
+        return [cur.fetchone()]    
 
     def all(self):
         sql = "SELECT * FROM " + self.table_name
-        sql += " ORDER BY "
-        sql += ", ".join(self.primary_key())
+        sql += f" ORDER BY {self.primary_key}" 
         cur = self.dbconn.conn.cursor()
         cur.execute(sql)
         return cur.fetchall()
