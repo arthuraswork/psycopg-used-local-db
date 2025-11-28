@@ -10,20 +10,20 @@ class Main:
 
     config = ProjectConfig()
     connection = DbConnection(config)
-    dt = CarsTable()
+    ct = CarsTable()
     dt = DriversTable()
     instance = '0'
     confirmed_ops = ['<','>','>=','<=','<>','=']
-    count = 8
+    count = 12
 
     
     def __init__(self):
         DbTable.dbconn = self.connection
-        self.tables = [self.dt, self.dt]
+        self.tables = [self.ct, self.dt]
         return
 
     def input_processing(self, userinput):
-        if len(userinput) == 2:
+        if len(userinput) >= 2:
             userinput = userinput[1]
         cmds = {
             '0': self.show_main_menu,
@@ -31,16 +31,19 @@ class Main:
             '+': self.add_driver,
             '2': self.show_cars,
             '?': self.select_by_x,
-            '!': self.update_table,
+            '!': self.update_by_x,
             'f': self.select_first,
             'l': self.select_last,
             '-': self.delete_by_x,
             '3': self.create_tables,
-            '4': self.db_drop
+            '*0': self.db_drop,
+            'n': self.convert_number_to_id
         }
 
         func = cmds.get(userinput)
         if func:
+            if userinput == 'n':
+                return func(True)
             return func()
     
     def select_first(self):
@@ -48,7 +51,7 @@ class Main:
         if self.instance == '1':
             result = self.dt.first()
         elif self.instance == '2':
-            result = self.dt.first()
+            result = self.ct.first()
         if result:
             self.print_result(result)
         else:
@@ -60,11 +63,25 @@ class Main:
         if self.instance == '1':
             result = self.dt.last()
         elif self.instance == '2':
-            result = self.dt.last()
+            result = self.ct.last()
         if result:
             self.print_result(result)
         else:
             print('Операция не дала результата')
+
+    def convert_number_to_id(self, print_res=False):
+        num = str(int(input('Введите порядковый номер\n~$ ')) + 1)
+        if not num.isdigit():
+            print('Ошибка, для поиска по строковым значениям используйте 1?')
+            return 
+        rows = self.dt.all(limit=num) if self.instance == '1' else self.ct.all(limit=num)
+        if (rows_count := len(rows)) == int(num):
+            if print_res:
+                return self.print_result(result=[rows[-1]])
+            return rows[-1]
+
+        print(f'Такой записи нет: записей всего {rows_count-1}')
+        return []
 
     def create_tables(self):
         request = []
@@ -100,7 +117,6 @@ class Main:
     1 - просмотр людей;
     2 - просмотр автомобилей;
     3 - создание таблиц;
-    4 - удаление таблиц
     9 - выход.
 """     
         print(menu)
@@ -114,34 +130,46 @@ class Main:
         lst = self.dt.all()
         return self.print_result(lst)
 
-    def print_result(self, result):
+    def print_result(self, result:list):
         keys = None
         if self.instance == '1':
-            keys = self.dt.columns().keys() 
+            keys = list(self.dt.columns().keys())[1:]
         if self.instance == '2':
-            keys = self.dt.columns().keys()       
+            keys = list(self.ct.columns().keys())[1:]    
         if not keys:
             return
-
-        print("Номер  ",
-            "\t".join([f"\033[34m{i}{' '* (self.count -len(str(i)))}\033[0m" for i in keys])
+        result = [i[1:] for i in result]
+        print("\033[34mНомер   ",
+            "\t".join([f"{i}{' '* (self.count -len(str(i)))}" for i in keys],
+                      ), 
+                '\033[0m'
               )
         for i, row in enumerate(result):
-            print(row)
-            print(f'{i}    ', "\t".join([f"{v}{' '* (self.count -len(str(v)))}" for v in row]))
+            print(f'{i}\t', "\t".join([f"{v}{' '* (self.count -len(str(v)))}" for v in row]))
 
         print('\n')
 
             
     def select_by_x(self):
         result = None
+        val = None
 
-        x = input('Введите колонку\n~$ ')
+        print('Если вы хотите использовать номер для поиска, если номер, то введите n')
+        num_or_else = input('~$ ')
+        if num_or_else == 'n':
+            result = self.convert_number_to_id()
+            if not num_or_else:
+                return 
+            x = 'id'
+            val = result[0]
+        else:
+            x = input('Введите колонку\n~$ ')
         operation = input('Введите операцию\n~$ ')
         if operation not in self.confirmed_ops:
             print('Используйте разрешенные операции:',', '.join(self.confirmed_ops))
-            return 
-        val = input('Введите значение\n~$ ')
+            return     
+        if not val:
+            val = input('Введите значение\n~$ ') 
         if self.instance == '1':
             result = self.dt.select_where(x, operation, val)
         elif self.instance == '2':
@@ -161,8 +189,9 @@ class Main:
     {num}-   удаление объекта;
     {num}f   первый объект;
     {num}l   последний объект;
-    {num}d   удаление таблицы;
+    {num}*0  удаление таблицы;
     {num}?   поиск по столбцу и значению;
+    {num}n   поиск по порядковому номеру;
     9    выход
     """
         print(menu)
@@ -194,13 +223,24 @@ class Main:
     
     def delete_by_x(self):
         result = None
+        val = None
 
-        x = input('Введите колонку\n~$ ')
+        print('Если вы хотите использовать номер для поиска, если номер, то введите n')
+        num_or_else = input('~$ ')
+        if num_or_else == 'n':
+            result = self.convert_number_to_id()
+            if not num_or_else:
+                return 
+            x = 'id'
+            val = result[0]
+        else:
+            x = input('Введите колонку\n~$ ')
         operation = input('Введите операцию\n~$ ')
         if operation not in self.confirmed_ops:
             print('Используйте разрешенные операции:',', '.join(self.confirmed_ops))
-            return 
-        val = input('Введите значение\n~$ ')
+            return     
+        if not val:
+            val = input('Введите значение\n~$ ') 
         if self.instance == '1':
             result = self.dt.delete_where(x, operation, val)
         elif self.instance == '2':
@@ -214,22 +254,34 @@ class Main:
             print('Операция не дала результата')
 
 
-    def update_table(self):
+    def update_by_x(self):
         result = None
+        val = None
         maxlen = 64
-        x = input('Введите колонку\n~$ ')
+        print('Если вы хотите использовать номер для поиска, если номер, то введите n')
+        num_or_else = input('~$ ')
+        if num_or_else == 'n':
+            result = self.convert_number_to_id()
+            if not num_or_else:
+                return 
+            x = 'id'
+            val = result[0]
+        else:
+            x = input('Введите колонку\n~$ ')
         operation = input('Введите операцию\n~$ ')
         if operation not in self.confirmed_ops:
             print('Используйте разрешенные операции:',', '.join(self.confirmed_ops))
-            return         
-        val = input('Введите значение\n~$ ')
+            return     
+        if not val:
+            val = input('Введите значение\n~$ ') 
+
         updating_column = input('Введите обновляемую колонку\n~$ ')
         str_to_i = False
         datatype = self.dt.columns().get(updating_column)
         if datatype:
             if '(' in datatype[0]:
                 maxlen = int(''.join([i for i in datatype[0] if i.isdigit()]))
-                if 'integer' in datatype[0] | 'serial' in datatype[0]:
+                if 'integer' in datatype[0] or 'serial' in datatype[0]:
                     str_to_i = True
                     
         new_value = input('Введите новое значени\n~$ ')

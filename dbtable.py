@@ -91,9 +91,11 @@ class DbTable:
         cur.execute(sql)
         return [cur.fetchone()]    
 
-    def all(self):
+    def all(self, limit = ''):
+        if limit:
+            limit = 'LIMIT ' + limit
         sql = "SELECT * FROM " + self.table_name
-        sql += f" ORDER BY {self.primary_key}" 
+        sql += f" ORDER BY {self.primary_key} " + limit 
         cur = self.dbconn.conn.cursor()
         cur.execute(sql)
         return cur.fetchall()
