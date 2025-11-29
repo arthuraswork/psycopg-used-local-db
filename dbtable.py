@@ -20,18 +20,15 @@ class DbTable:
     def table_constraints(self):
         return self.columns().values()
 
-    def create(self):
-        sql = "CREATE TABLE IF NOT EXISTS" + self.table_name + "("
-        arr = [k + " " + " ".join(v) for k, v in sorted(self.columns().items(), key = lambda x: x[0])]
-        sql += ", ".join(arr + self.table_constraints())
-        sql += ")"
+    def create(self, request):
         cur = self.dbconn.conn.cursor()
-        cur.execute(sql)
+        cur.execute(request)
         self.dbconn.conn.commit()
         return
 
     def drop(self):
         sql = "DROP TABLE IF EXISTS " + self.table_name
+        print(sql)
         cur = self.dbconn.conn.cursor()
         cur.execute(sql)
         self.dbconn.conn.commit()
@@ -67,6 +64,7 @@ class DbTable:
         return cur.fetchall()
 
     def insert_one(self, vals):
+        print(vals)
         values = ", ".join([c for c,_ in vals])
         data_placeholders = ", ".join(['%s' for _,v in vals])
         params = tuple([v for _,v in vals])

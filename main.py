@@ -16,15 +16,20 @@ class Main:
     confirmed_ops = ['<','>','>=','<=','<>','=']
     count = 12
 
-    
     def __init__(self):
         DbTable.dbconn = self.connection
         self.tables = [self.ct, self.dt]
-        return
-
+    
+    def insert_some_data(self):
+        dt_data = [[(c,v) for c,v in zip(list(self.dt.columns().keys())[1:],row)] for row in self.dt.inserting_data()]
+        ct_data = [[(c,v) for c,v in zip(list(self.ct.columns().keys())[1:],row)] for row in self.ct.inserting_data()]
+        for dt,ct in zip(dt_data,ct_data):
+            self.dt.insert_one(dt)
+            self.ct.insert_one(ct)
     def input_processing(self, userinput):
         if len(userinput) >= 2:
-            userinput = userinput[1]
+            userinput = userinput[1:]
+            print(userinput)
         cmds = {
             '0': self.show_main_menu,
             '1': self.show_drivers,
@@ -84,11 +89,10 @@ class Main:
         return []
 
     def create_tables(self):
-        request = []
         for table in self.tables:
-            request.append(
+            table.create(
                 f"""
-        CREATE TABLE IF NOT EXISTS {table.name}(
+        CREATE TABLE IF NOT EXISTS {table.table_name}(
         
             {
                 ', '.join([f"{column} {' '.join(constraints)}" for column, constraints in table.columns().items()])
@@ -97,17 +101,16 @@ class Main:
         )
                 """
             )
-
     def db_init(self):
         self.dt.create()
-        self.dt.create()
+        self.ct.create()
         return
 
     def db_drop(self):
         if self.instance == '1':
             self.dt.drop()
             return
-        self.dt.drop()
+        self.ct.drop()
         
 
     def show_main_menu(self):
@@ -173,7 +176,7 @@ class Main:
         if self.instance == '1':
             result = self.dt.select_where(x, operation, val)
         elif self.instance == '2':
-            result = self.dt.select_where(x, operation, val)
+            result = self.ct.select_where(x, operation, val)
         
         if result:
             self.print_result(
@@ -244,7 +247,7 @@ class Main:
         if self.instance == '1':
             result = self.dt.delete_where(x, operation, val)
         elif self.instance == '2':
-            result = self.dt.delete_where(x, operation, val)
+            result = self.ct.delete_where(x, operation, val)
         
         if result:
             self.print_result(
@@ -277,7 +280,8 @@ class Main:
 
         updating_column = input('Введите обновляемую колонку\n~$ ')
         str_to_i = False
-        datatype = self.dt.columns().get(updating_column)
+        current_table = self.dt if self.instance == '1' else self.ct
+        datatype = current_table.columns().get(updating_column)
         if datatype:
             if '(' in datatype[0]:
                 maxlen = int(''.join([i for i in datatype[0] if i.isdigit()]))
@@ -294,7 +298,7 @@ class Main:
         if self.instance == '1':
             result = self.dt.update_table(x, operation, val, updating_column, new_value)
         elif self.instance == '2':
-            result = self.dt.update_table(x, operation, val, updating_column, new_value)
+            result = self.ct.update_table(x, operation, val, updating_column, new_value)
         
         if result:
             self.print_result(
@@ -322,7 +326,7 @@ class Main:
                     else:
                         data.append((column,user_input))          
                         break
-        self.dt.insert_one(data)
+        self.ct.insert_one(data)
         return
 
     def main_cycle(self):
@@ -343,5 +347,7 @@ class Main:
         DbTable.dbconn.test()
 
 m = Main()
-m.main_cycle()
-    
+if __name__ == "__main__":
+    #m.test()
+    #m.insert_some_data()
+    m.main_cycle()
