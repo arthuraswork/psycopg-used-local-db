@@ -2,7 +2,7 @@
 
 from dbtable import *
 
-class CarsTable(DbTable):
+class CarsTableModel(DbTable):
     table_name = 'cars'
 
     def __init__(self):

@@ -10,30 +10,30 @@ class Main:
 
     config = ProjectConfig()
     connection = DbConnection(config)
-    ct = CarsTable()
-    dt = DriversTable()
+    CarsTable = CarsTableModel()
+    DriversTable = DriversTableModel()
     instance = '0'
     confirmed_ops = ['<','>','>=','<=','<>','=']
     count = 12
 
     def __init__(self):
         DbTable.dbconn = self.connection
-        self.tables = [self.ct, self.dt]
+        self.tables = [self.CarsTable, self.DriversTable]
     
     def insert_some_data(self):
-        dt_data = [[(c,v) for c,v in zip(list(self.dt.columns().keys())[1:],row)] for row in self.dt.inserting_data()]
-        ct_data = [[(c,v) for c,v in zip(list(self.ct.columns().keys())[1:],row)] for row in self.ct.inserting_data()]
+        dt_data = [[(c,v) for c,v in zip(list(self.DriversTable.columns().keys())[1:],row)] for row in self.DriversTable.inserting_data()]
+        ct_data = [[(c,v) for c,v in zip(list(self.CarsTable.columns().keys())[1:],row)] for row in self.CarsTable.inserting_data()]
         for dt,ct in zip(dt_data,ct_data):
-            self.dt.insert_one(dt)
-            self.ct.insert_one(ct)
+            self.DriversTable.insert_one(dt)
+            self.CarsTable.insert_one(ct)
     def input_processing(self, userinput):
-        if len(userinput) >= 2:
+        if len(userinput) >= 2 and userinput not in ['1+','2+']:
             userinput = userinput[1:]
-            print(userinput)
         cmds = {
             '0': self.show_main_menu,
             '1': self.show_drivers,
-            '+': self.add_driver,
+            '1+': self.add_driver,
+            '2+': self.add_car,
             '2': self.show_cars,
             '?': self.select_by_x,
             '!': self.update_by_x,
@@ -54,9 +54,9 @@ class Main:
     def select_first(self):
         result = None
         if self.instance == '1':
-            result = self.dt.first()
+            result = self.DriversTable.first()
         elif self.instance == '2':
-            result = self.ct.first()
+            result = self.CarsTable.first()
         if result:
             self.print_result(result)
         else:
@@ -66,9 +66,9 @@ class Main:
     def select_last(self):
         result = None
         if self.instance == '1':
-            result = self.dt.last()
+            result = self.DriversTable.last()
         elif self.instance == '2':
-            result = self.ct.last()
+            result = self.CarsTable.last()
         if result:
             self.print_result(result)
         else:
@@ -79,7 +79,7 @@ class Main:
         if not num.isdigit():
             print('Ошибка, для поиска по строковым значениям используйте 1?')
             return 
-        rows = self.dt.all(limit=num) if self.instance == '1' else self.ct.all(limit=num)
+        rows = self.DriversTable.all(limit=num) if self.instance == '1' else self.CarsTable.all(limit=num)
         if (rows_count := len(rows)) == int(num):
             if print_res:
                 return self.print_result(result=[rows[-1]])
@@ -102,15 +102,15 @@ class Main:
                 """
             )
     def db_init(self):
-        self.dt.create()
-        self.ct.create()
+        self.DriversTable.create()
+        self.CarsTable.create()
         return
 
     def db_drop(self):
         if self.instance == '1':
-            self.dt.drop()
+            self.DriversTable.drop()
             return
-        self.ct.drop()
+        self.CarsTable.drop()
         
 
     def show_main_menu(self):
@@ -130,15 +130,15 @@ class Main:
             
     def show_drivers(self):
         print("Просмотр списка водителей:")
-        lst = self.dt.all()
+        lst = self.DriversTable.all()
         return self.print_result(lst)
 
     def print_result(self, result:list):
         keys = None
         if self.instance == '1':
-            keys = list(self.dt.columns().keys())[1:]
+            keys = list(self.DriversTable.columns().keys())[1:]
         if self.instance == '2':
-            keys = list(self.ct.columns().keys())[1:]    
+            keys = list(self.CarsTable.columns().keys())[1:]    
         if not keys:
             return
         result = [i[1:] for i in result]
@@ -174,9 +174,9 @@ class Main:
         if not val:
             val = input('Введите значение\n~$ ') 
         if self.instance == '1':
-            result = self.dt.select_where(x, operation, val)
+            result = self.DriversTable.select_where(x, operation, val)
         elif self.instance == '2':
-            result = self.ct.select_where(x, operation, val)
+            result = self.CarsTable.select_where(x, operation, val)
         
         if result:
             self.print_result(
@@ -201,14 +201,14 @@ class Main:
     
     def show_cars(self):
         print("Просмотр списка машин:")
-        lst = self.ct.all()
+        lst = self.CarsTable.all()
         return self.print_result(lst)
 
     def add_driver(self):
 
         data = []
 
-        for column, datatype in self.dt.columns().items():
+        for column, datatype in self.DriversTable.columns().items():
             maxlen = 64
             if '(' in datatype[0]:
                 maxlen = int(''.join([i for i in datatype[0] if i.isdigit()]))
@@ -216,12 +216,38 @@ class Main:
             if datatype[0] != 'serial':
                 while True:
                     user_input = input(f"Введите данные в {column}: {datatype[0]}\n~$ ").strip()
+
+                    if column == 'inn' and (len(user_input) != 12 or not user_input.isdigit()):
+                        print('ИНН состоит только из цифр и длина == 12')
+                        continue
+                    
+                    elif column == 'pasport_series' and (len(user_input) != 4 or not user_input.isdigit()):
+                        print('Серия паспорта состоит только из цифр и длина == 4')
+                        continue
+                    
+                    elif column == 'pasport_number' and (len(user_input) != 6 or not user_input.isdigit()):
+                        print('Номер паспорта состоит только из цифр и длина == 6')
+                        continue
+                    
+                    elif column == 'birth_date':
+                        parts = user_input.split('-')
+                        if len(parts) != 3:
+                            print('Формат даты: ГГГГ-ММ-ДД')
+                            continue
+                        year, month, day = parts
+                        if not (year.isdigit() and month.isdigit() and day.isdigit()):
+                            print('Дата должна содержать только цифры')
+                            continue
+                        if not (1900 <= int(year)):
+                            print('Год должен быть не меньше 1900')
+                            continue
+
                     if len(user_input) > maxlen or len(user_input) < 1:
                         print(f'Длинна ввода должна быть меньше {maxlen} и больше ноля')
                     else:
                         data.append((column,user_input))          
                         break
-        self.dt.insert_one(data)
+        self.DriversTable.insert_one(data)
         return
     
     def delete_by_x(self):
@@ -245,9 +271,9 @@ class Main:
         if not val:
             val = input('Введите значение\n~$ ') 
         if self.instance == '1':
-            result = self.dt.delete_where(x, operation, val)
+            result = self.DriversTable.delete_where(x, operation, val)
         elif self.instance == '2':
-            result = self.ct.delete_where(x, operation, val)
+            result = self.CarsTable.delete_where(x, operation, val)
         
         if result:
             self.print_result(
@@ -280,7 +306,7 @@ class Main:
 
         updating_column = input('Введите обновляемую колонку\n~$ ')
         str_to_i = False
-        current_table = self.dt if self.instance == '1' else self.ct
+        current_table = self.DriversTable if self.instance == '1' else self.CarsTable
         datatype = current_table.columns().get(updating_column)
         if datatype:
             if '(' in datatype[0]:
@@ -296,9 +322,9 @@ class Main:
             print(f'Длинна ввода должна быть меньше {maxlen} и больше ноля')
             return
         if self.instance == '1':
-            result = self.dt.update_table(x, operation, val, updating_column, new_value)
+            result = self.DriversTable.update_table(x, operation, val, updating_column, new_value)
         elif self.instance == '2':
-            result = self.ct.update_table(x, operation, val, updating_column, new_value)
+            result = self.CarsTable.update_table(x, operation, val, updating_column, new_value)
         
         if result:
             self.print_result(
@@ -310,10 +336,9 @@ class Main:
 
     
     def add_car(self):
-
         data = []
 
-        for column, datatype in self.dt.columns().items():
+        for column, datatype in self.CarsTable.columns().items():
             maxlen = 64
             if '(' in datatype[0]:
                 maxlen = int(''.join([i for i in datatype[0] if i.isdigit()]))
@@ -321,13 +346,26 @@ class Main:
             if datatype[0] != 'serial':
                 while True:
                     user_input = input(f"Введите данные в {column}: {datatype[0]}\n~$ ").strip()
+
+                    if column == 'number' and (len(user_input) != 9 or not self.is_valid_car_number(user_input)):
+                        print('Номер машины должен быть 9 символов (пример: А123АА777)')
+                        continue
+                    
+                    elif column == 'color_hex' and (len(user_input) != 7 or not user_input.startswith('#')):
+                        print('Цвет в формате HEX: #RRGGBB')
+                        continue
+                    
+                    elif column == 'production_year' and (not user_input.isdigit() or not 1900 <= int(user_input) <= 2024):
+                        print('Год производства должен быть числом 1900-2024')
+                        continue
                     if len(user_input) > maxlen or len(user_input) < 1:
                         print(f'Длинна ввода должна быть меньше {maxlen} и больше ноля')
                     else:
                         data.append((column,user_input))          
                         break
-        self.ct.insert_one(data)
+        self.CarsTable.insert_one(data)
         return
+
 
     def main_cycle(self):
         while(self.instance != "9"):

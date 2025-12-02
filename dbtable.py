@@ -28,7 +28,6 @@ class DbTable:
 
     def drop(self):
         sql = "DROP TABLE IF EXISTS " + self.table_name
-        print(sql)
         cur = self.dbconn.conn.cursor()
         cur.execute(sql)
         self.dbconn.conn.commit()
@@ -64,7 +63,6 @@ class DbTable:
         return cur.fetchall()
 
     def insert_one(self, vals):
-        print(vals)
         values = ", ".join([c for c,_ in vals])
         data_placeholders = ", ".join(['%s' for _,v in vals])
         params = tuple([v for _,v in vals])
